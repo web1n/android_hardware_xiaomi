@@ -20,6 +20,8 @@ using ::android::base::SetProperty;
 namespace aidl::android::hardware::biometrics::fingerprint {
 
 namespace {
+constexpr int FP_CMD_LOCKOUT_MODE = 12;
+constexpr int FP_PARAM_POWERFP_ENABLE_NAVIGATION = 2;
 constexpr int MAX_ENROLLMENTS_PER_USER = 5;
 constexpr char HW_COMPONENT_ID[] = "fingerprintSensor";
 constexpr char HW_VERSION[] = "vendor/model/revision";
@@ -71,6 +73,14 @@ Fingerprint::Fingerprint(std::shared_ptr<FingerprintConfig> config) : mConfig(st
             ALOGI("Opened fingerprint HAL, class: %s, module_id: %s", class_name.c_str(),
                   class_module_id.c_str());
             SetProperty("persist.vendor.sys.fp.vendor", class_name);
+
+            auto vendors_str = mConfig->get<std::string>("powerfps_navigation_vendors");
+            auto vendors = ::android::base::Split(vendors_str, ",");
+            if (mDevice && std::find(vendors.begin(), vendors.end(), class_name) != vendors.end()) {
+                ALOGI("Vendor %s matched, enabling PowerFP navigation", class_name.c_str());
+                mDevice->extCmd(mDevice, FP_CMD_LOCKOUT_MODE, FP_PARAM_POWERFP_ENABLE_NAVIGATION);
+            }
+
             break;
         }
         if (!mDevice) {

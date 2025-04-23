@@ -51,6 +51,16 @@ prop {
     api_name: "navigation_gesture"
 }
 
+# whether support power fingerprint navigation guestures (default: none)
+#    fpc,goodix
+prop {
+    prop_name: "persist.vendor.fingerprint.powerfps_navigation_vendors"
+    type: String
+    scope: Internal
+    access: ReadWrite
+    api_name: "powerfps_navigation_vendors"
+}
+
 # whether support detect interaction (default: false)
 prop {
     prop_name: "persist.vendor.fingerprint.detect_interaction"
