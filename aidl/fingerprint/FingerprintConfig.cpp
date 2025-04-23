@@ -31,6 +31,7 @@ CREATE_GETTER_SETTER_WRAPPER(sensor_id, OptInt32)
 CREATE_GETTER_SETTER_WRAPPER(sensor_location, OptString)
 CREATE_GETTER_SETTER_WRAPPER(sensor_strength, OptInt32)
 CREATE_GETTER_SETTER_WRAPPER(navigation_gesture, OptBool)
+CREATE_GETTER_SETTER_WRAPPER(powerfps_navigation_vendors, OptString)
 CREATE_GETTER_SETTER_WRAPPER(detect_interaction, OptBool)
 CREATE_GETTER_SETTER_WRAPPER(display_touch, OptBool)
 CREATE_GETTER_SETTER_WRAPPER(control_illumination, OptBool)
@@ -43,6 +44,7 @@ static Config::Data configData[] = {
         {NGS(sensor_location), &Config::parseString, ""},
         {NGS(sensor_strength), &Config::parseInt32, "2"},  // STRONG
         {NGS(navigation_gesture), &Config::parseBool, "false"},
+        {NGS(powerfps_navigation_vendors), &Config::parseString, ""},
         {NGS(detect_interaction), &Config::parseBool, "false"},
         {NGS(display_touch), &Config::parseBool, "false"},
         {NGS(control_illumination), &Config::parseBool, "false"},
