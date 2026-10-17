@@ -1,0 +1,29 @@
+aidl_interface {
+    name: "vendor.xiaomi.hardware.aon",
+    vendor_available: true,
+    srcs: ["vendor/xiaomi/hardware/aon/*.aidl"],
+    stability: "vintf",
+    backend: {
+        java: {
+            sdk_version: "module_current",
+            min_sdk_version: "30",
+        },
+        cpp: {
+            enabled: false,
+        },
+        ndk: {
+            enabled: false,
+        },
+        rust: {
+            enabled: false,
+        },
+    },
+    owner: "xiaomi",
+    versions_with_info: [
+        {
+            version: "1",
+            imports: [],
+        },
+    ],
+    frozen: true,
+}
