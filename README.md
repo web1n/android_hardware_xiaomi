@@ -9,3 +9,5 @@
 | XIAOMI_TOUCH | HIGH_TOUCH_POLLING_PATH | HighTouchPollingRate feature control path | |
 | XIAOMI_TOUCH | KEY_DISABLER_CONTROL_PATH | KeyDisabler feature control path | |
 | XIAOMI_TOUCH | KEY_SWAPPER_CONTROL_PATH | KeySwapper feature control path | |
+| xiaomi_vibrator | aac_library | Vendor `libaachaptics.so` module for primitive synthesis | |
+| xiaomi_vibrator | aac_f0 | Required AAC resonance reference in Hz (150–190) | |

@@ -1,8 +1,44 @@
 Common_CFlags = ["-Wall"]
 Common_CFlags += ["-Werror"]
 
+soong_config_module_type {
+    name: "xiaomi_vibrator_effect_defaults",
+    module_type: "cc_defaults",
+    config_namespace: "xiaomi_vibrator",
+    value_variables: [
+        "aac_library",
+        "aac_f0",
+    ],
+    properties: [
+        "cflags",
+        "compile_multilib",
+        "shared_libs",
+        "srcs",
+    ],
+}
+
+xiaomi_vibrator_effect_defaults {
+    name: "xiaomi_vibrator_effect_defaults",
+    soong_config_variables: {
+        aac_library: {
+            cflags: ["-DXIAOMI_VIBRATOR_USE_AAC"],
+            compile_multilib: "64",
+            srcs: ["AacEffect.cpp"],
+            shared_libs: [
+                "%s",
+                "liblog",
+                "libm",
+            ],
+        },
+        aac_f0: {
+            cflags: ["-DXIAOMI_VIBRATOR_AAC_F0=%s"],
+        },
+    },
+}
+
 cc_library_shared {
     name: "libqtivibratoreffect.xiaomi",
+    defaults: ["xiaomi_vibrator_effect_defaults"],
     vendor: true,
     cflags: Common_CFlags,
     srcs: [

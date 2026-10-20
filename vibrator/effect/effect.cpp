@@ -39,10 +39,15 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <mutex>
 #include <unordered_map>
 #include <vector>
 
 #include "effect.h"
+
+#ifdef XIAOMI_VIBRATOR_USE_AAC
+#include "AacEffect.h"
+#endif
 
 using aidl::android::hardware::vibrator::Effect;
 
@@ -53,6 +58,20 @@ const uint16_t kPrimitiveMask = (1 << 15);
 
 std::unordered_map<uint32_t, effect_stream> sEffectStreams;
 std::unordered_map<uint32_t, std::vector<int8_t>> sEffectFifoData;
+std::mutex sEffectMutex;
+
+#ifdef XIAOMI_VIBRATOR_USE_AAC
+std::unique_ptr<effect_stream> generatePrimitive(uint32_t uniqueEffectId) {
+    const uint32_t primitiveId = uniqueEffectId & ~kPrimitiveMask;
+    auto samples = renderAacPrimitive(primitiveId);
+    if (samples.empty()) return nullptr;
+
+    auto result = sEffectFifoData.emplace(uniqueEffectId, std::move(samples));
+    const auto& data = result.first->second;
+    return std::make_unique<effect_stream>(primitiveId, static_cast<uint32_t>(data.size()),
+                                           kDefaultPlayRateHz, data.data());
+}
+#endif
 
 std::unique_ptr<effect_stream> readEffectStreamFromFile(uint32_t uniqueEffectId) {
     std::filesystem::path filePath;
@@ -86,6 +105,8 @@ std::unique_ptr<effect_stream> readEffectStreamFromFile(uint32_t uniqueEffectId)
 
 std::unique_ptr<effect_stream> duplicateEffect(const effect_stream* effectStream,
                                                uint32_t newEffectId) {
+    if (!effectStream) return nullptr;
+
     const std::uint32_t newEffectLength = effectStream->length * 4;
     std::vector<int8_t> fifoData(newEffectLength);
 
@@ -99,19 +120,28 @@ std::unique_ptr<effect_stream> duplicateEffect(const effect_stream* effectStream
                                            result.first->second.data());
 }
 
-}  // namespace
-
-const struct effect_stream* get_effect_stream(uint32_t effectId) {
+const struct effect_stream* getEffectStreamLocked(uint32_t effectId) {
     auto it = sEffectStreams.find(effectId);
     if (it == sEffectStreams.end()) {
-        std::unique_ptr<effect_stream> newEffectStream = readEffectStreamFromFile(effectId);
+        std::unique_ptr<effect_stream> newEffectStream;
+#ifdef XIAOMI_VIBRATOR_USE_AAC
+        if ((effectId & kPrimitiveMask) != 0) {
+            newEffectStream = generatePrimitive(effectId);
+        }
+#endif
+        if (!newEffectStream) newEffectStream = readEffectStreamFromFile(effectId);
 
         if (newEffectStream) {
             auto result = sEffectStreams.emplace(effectId, *newEffectStream);
             return &result.first->second;
-        } else if (effectId == (uint32_t)Effect::DOUBLE_CLICK) {
+        }
+#ifdef XIAOMI_VIBRATOR_USE_AAC
+        // A failed primitive must not be advertised as a copy of CLICK.
+        if ((effectId & kPrimitiveMask) != 0) return nullptr;
+#endif
+        if (effectId == (uint32_t)Effect::DOUBLE_CLICK) {
             LOG(VERBOSE) << "Could not get double click effect, duplicating click effect";
-            newEffectStream = duplicateEffect(get_effect_stream((uint32_t)Effect::CLICK),
+            newEffectStream = duplicateEffect(getEffectStreamLocked((uint32_t)Effect::CLICK),
                                               (uint32_t)Effect::DOUBLE_CLICK);
             if (newEffectStream) {
                 auto result = sEffectStreams.emplace(effectId, *newEffectStream);
@@ -119,11 +149,18 @@ const struct effect_stream* get_effect_stream(uint32_t effectId) {
             }
         } else if (effectId != (uint32_t)Effect::CLICK) {
             LOG(VERBOSE) << "Could not get effect " << effectId << ", falling back to click effect";
-            return get_effect_stream((uint32_t)Effect::CLICK);
+            return getEffectStreamLocked((uint32_t)Effect::CLICK);
         }
     } else {
         return &it->second;
     }
 
     return nullptr;
+}
+
+}  // namespace
+
+const struct effect_stream* get_effect_stream(uint32_t effectId) {
+    std::lock_guard<std::mutex> lock(sEffectMutex);
+    return getEffectStreamLocked(effectId);
 }
